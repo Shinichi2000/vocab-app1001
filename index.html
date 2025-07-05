@@ -6,13 +6,17 @@
   <title>英単語フラッシュカード + 復習モード</title>
   <style>
     body {
-      font-family: sans-serif;
-      background: #f4f4f4;
+      font-family: 'Helvetica Neue', sans-serif;
+      background: linear-gradient(to right, #f0f4f8, #d9e2ec);
       display: flex;
       flex-direction: column;
       align-items: center;
       padding: 20px;
       margin: 0;
+    }
+    h2 {
+      color: #102a43;
+      margin-bottom: 10px;
     }
     .card {
       width: 90%;
@@ -40,15 +44,16 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      border-radius: 10px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      border-radius: 12px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
       background: white;
-      padding: 10px;
+      padding: 15px;
       box-sizing: border-box;
     }
     .card-front {
       font-size: 1.8em;
       text-align: center;
+      color: #243b53;
     }
     .card-back {
       transform: rotateY(180deg);
@@ -56,16 +61,21 @@
       font-size: 0.95em;
       text-align: left;
       overflow-y: auto;
+      color: #334e68;
     }
     button {
       padding: 10px 20px;
       margin: 5px;
       border: none;
       border-radius: 6px;
-      background-color: #007acc;
+      background-color: #2f80ed;
       color: white;
       cursor: pointer;
       font-size: 1em;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    button:hover {
+      background-color: #1c64f2;
     }
     button:active {
       transform: scale(0.98);
@@ -131,7 +141,6 @@
       document.getElementById("cardBack").innerHTML =
         `<strong>意味:</strong> ${item.meaning_jp}<br>
          <strong>類義語:</strong> ${item.synonym}<br>
-         <strong>定義:</strong> ${item.definition_en}<br>
          <strong>例文:</strong> ${item.example}`;
       flipped = false;
       document.querySelector(".card").classList.remove("flip");
