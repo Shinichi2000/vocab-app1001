@@ -14,7 +14,7 @@
       padding: 20px;
       margin: 0;
     }
-    h2 {
+    h2, h3 {
       color: #102a43;
       margin-bottom: 10px;
     }
@@ -80,7 +80,7 @@
     button:active {
       transform: scale(0.98);
     }
-    #review-section {
+    #review-section, #add-section {
       margin-top: 30px;
       width: 100%;
       max-width: 320px;
@@ -88,6 +88,14 @@
     ul {
       padding-left: 20px;
       text-align: left;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      margin-top: 10px;
+      margin-bottom: 10px;
     }
     @media (max-width: 480px) {
       .card {
@@ -125,6 +133,13 @@
     <ul id="reviewList"></ul>
   </div>
 
+  <div id="add-section">
+    <h3>新しい単語を追加</h3>
+    <input type="text" id="newWordInput" placeholder="新しい単語を入力">
+    <button onclick="submitNewWord()">追加</button>
+    <p id="addStatus"></p>
+  </div>
+
   <script>
     let data = [];
     let currentIndex = 0;
@@ -132,7 +147,7 @@
     const maxCorrect = 2;
 
     async function fetchData() {
-      const res = await fetch("https://script.google.com/macros/s/AKfycbxDpQTJeh3bLnrZr6vz8hczicAqdk-PKbSqCcwV80-K-flb_c1ybDNh-HqJFbxVfsCa1A/exec");
+      const res = await fetch("https://script.google.com/macros/s/AKfycbwAGFLB2p5sSnJKyIwcKaF-sdt0DnygT0-12UxIwGQ-uGXMjeQdWpCqnh7KrUV3TM7Nfg/exec");
       let raw = await res.json();
       const records = JSON.parse(localStorage.getItem('knownWords') || '{}');
       data = raw.filter(item => (records[item.word]?.correct || 0) < maxCorrect);
@@ -183,11 +198,6 @@
       localStorage.setItem('knownWords', JSON.stringify(records));
 
       if (current.correct >= maxCorrect) {
-        fetch("https://script.google.com/macros/s/AKfycbxDpQTJeh3bLnrZr6vz8hczicAqdk-PKbSqCcwV80-K-flb_c1ybDNh-HqJFbxVfsCa1A/exec", {
-          method: "POST",
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: `word=${encodeURIComponent(word)}`
-        });
         data.splice(currentIndex, 1);
         if (currentIndex >= data.length) currentIndex = 0;
       } else {
@@ -233,6 +243,37 @@
         li.textContent = word;
         ul.appendChild(li);
       });
+    }
+
+    async function submitNewWord() {
+      const word = document.getElementById("newWordInput").value.trim();
+      const statusEl = document.getElementById("addStatus");
+      if (!word) {
+        statusEl.textContent = "単語を入力してください。";
+        return;
+      }
+
+      statusEl.textContent = "処理中...";
+
+      try {
+        const res = await fetch("https://script.google.com/macros/s/AKfycbzia426NbF-8r5TziUT6qRJSGIs9Tm7KCODKyWxPFVqMjUHuv2TSa1g-OgZ7MoGitnfzw/exec", {
+          method: "POST",
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ word })
+        });
+
+        const result = await res.json();
+        if (result.success) {
+          statusEl.textContent = `追加されました: ${result.word}`;
+          document.getElementById("newWordInput").value = "";
+          fetchData();
+        } else {
+          statusEl.textContent = `エラー: ${result.message}`;
+        }
+      } catch (error) {
+        statusEl.textContent = "通信エラーが発生しました。";
+        console.error(error);
+      }
     }
 
     function shuffleArray(array) {
