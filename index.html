@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -148,7 +149,18 @@
   </div>
 
   <script>
-    // existing JavaScript code remains unchanged
+    let data = [];
+    let currentIndex = 0;
+    let flipped = false;
+
+    async function fetchData() {
+      const res = await fetch("https://script.google.com/macros/s/AKfycbwAGFLB2p5sSnJKyIwcKaF-sdt0DnygT0-12UxIwGQ-uGXMjeQdWpCqnh7KrUV3TM7Nfg/exec");
+      const rawData = await res.json();
+      data = shuffleArray(rawData);
+      showCard();
+    }
+
+    // 以降の JavaScript コードは以前のまま
     fetchData();
   </script>
 </body>
