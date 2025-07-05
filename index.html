@@ -129,15 +129,23 @@
     let data = [];
     let currentIndex = 0;
     let flipped = false;
+    const maxCorrect = 2;
 
     async function fetchData() {
-      const res = await fetch("https://script.google.com/macros/s/AKfycbwAGFLB2p5sSnJKyIwcKaF-sdt0DnygT0-12UxIwGQ-uGXMjeQdWpCqnh7KrUV3TM7Nfg/exec");
-      data = await res.json();
-      data = prioritizeNewWords(data);
+      const res = await fetch("https://script.google.com/macros/s/AKfycbxDpQTJeh3bLnrZr6vz8hczicAqdk-PKbSqCcwV80-K-flb_c1ybDNh-HqJFbxVfsCa1A/exec");
+      let raw = await res.json();
+      const records = JSON.parse(localStorage.getItem('knownWords') || '{}');
+      data = raw.filter(item => (records[item.word]?.correct || 0) < maxCorrect);
+      data = shuffleArray(data);
       showCard();
     }
 
     function showCard() {
+      if (data.length === 0) {
+        document.getElementById("cardFront").textContent = "全ての単語をマスターしました！";
+        document.getElementById("cardBack").innerHTML = "素晴らしい仕事です。";
+        return;
+      }
       const item = data[currentIndex];
       document.getElementById("cardFront").textContent = item.word;
       document.getElementById("cardBack").innerHTML =
@@ -149,6 +157,7 @@
     }
 
     function nextCard() {
+      if (data.length === 0) return;
       currentIndex = (currentIndex + 1) % data.length;
       showCard();
     }
@@ -167,15 +176,34 @@
     function markAsKnown() {
       const word = data[currentIndex].word;
       const records = JSON.parse(localStorage.getItem('knownWords') || '{}');
-      records[word] = { lastSeen: new Date().toISOString(), level: 'known' };
+      const current = records[word] || { correct: 0 };
+      current.correct = (current.correct || 0) + 1;
+      current.lastSeen = new Date().toISOString();
+      records[word] = current;
       localStorage.setItem('knownWords', JSON.stringify(records));
-      nextCard();
+
+      if (current.correct >= maxCorrect) {
+        fetch("https://script.google.com/macros/s/AKfycbxDpQTJeh3bLnrZr6vz8hczicAqdk-PKbSqCcwV80-K-flb_c1ybDNh-HqJFbxVfsCa1A/exec", {
+          method: "POST",
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: `word=${encodeURIComponent(word)}`
+        });
+        data.splice(currentIndex, 1);
+        if (currentIndex >= data.length) currentIndex = 0;
+      } else {
+        nextCard();
+      }
+
+      showCard();
     }
 
     function markAsUnknown() {
       const word = data[currentIndex].word;
       const records = JSON.parse(localStorage.getItem('knownWords') || '{}');
-      records[word] = { lastSeen: new Date().toISOString(), level: 'review' };
+      const current = records[word] || { correct: 0 };
+      current.correct = 0;
+      current.lastSeen = new Date().toISOString();
+      records[word] = current;
       localStorage.setItem('knownWords', JSON.stringify(records));
       nextCard();
     }
@@ -190,7 +218,7 @@
         const lastSeen = new Date(entry.lastSeen);
         const daysPassed = (now - lastSeen) / (1000 * 60 * 60 * 24);
 
-        if (entry.level === 'review' &&
+        if (entry.correct < maxCorrect &&
             (Math.abs(daysPassed - 1) < 0.5 ||
              Math.abs(daysPassed - 3) < 0.5 ||
              Math.abs(daysPassed - 7) < 0.5)) {
@@ -207,14 +235,8 @@
       });
     }
 
-    function prioritizeNewWords(dataArray) {
-      const records = JSON.parse(localStorage.getItem('knownWords') || '{}');
-      const sorted = [...dataArray].sort((a, b) => {
-        const aSeen = records[a.word]?.lastSeen || '';
-        const bSeen = records[b.word]?.lastSeen || '';
-        return bSeen.localeCompare(aSeen); // newer first
-      });
-      return sorted;
+    function shuffleArray(array) {
+      return array.sort(() => Math.random() - 0.5);
     }
 
     fetchData();
