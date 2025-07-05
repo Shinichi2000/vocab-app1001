@@ -114,6 +114,8 @@
       <div class="card-face card-back" id="cardBack"></div>
     </div>
   </div>
+  <button onclick="markAsKnown()">✔️ 覚えた</button>
+  <button onclick="markAsUnknown()">❌ 忘れた</button>
   <button onclick="nextCard()">次へ</button>
   <button onclick="speakWord()">🔊 発音</button>
 
@@ -131,7 +133,7 @@
     async function fetchData() {
       const res = await fetch("https://script.google.com/macros/s/AKfycbwAGFLB2p5sSnJKyIwcKaF-sdt0DnygT0-12UxIwGQ-uGXMjeQdWpCqnh7KrUV3TM7Nfg/exec");
       data = await res.json();
-      data = shuffleArray(data);
+      data = prioritizeNewWords(data);
       showCard();
     }
 
@@ -144,7 +146,6 @@
          <strong>例文:</strong> ${item.example}`;
       flipped = false;
       document.querySelector(".card").classList.remove("flip");
-      saveStudyDate(item.word);
     }
 
     function nextCard() {
@@ -163,28 +164,36 @@
       speechSynthesis.speak(utter);
     }
 
-    function shuffleArray(array) {
-      return array.sort(() => Math.random() - 0.5);
+    function markAsKnown() {
+      const word = data[currentIndex].word;
+      const records = JSON.parse(localStorage.getItem('knownWords') || '{}');
+      records[word] = { lastSeen: new Date().toISOString(), level: 'known' };
+      localStorage.setItem('knownWords', JSON.stringify(records));
+      nextCard();
     }
 
-    function saveStudyDate(word) {
-      const records = JSON.parse(localStorage.getItem('studyRecords') || '{}');
-      records[word] = new Date().toISOString();
-      localStorage.setItem('studyRecords', JSON.stringify(records));
+    function markAsUnknown() {
+      const word = data[currentIndex].word;
+      const records = JSON.parse(localStorage.getItem('knownWords') || '{}');
+      records[word] = { lastSeen: new Date().toISOString(), level: 'review' };
+      localStorage.setItem('knownWords', JSON.stringify(records));
+      nextCard();
     }
 
     function showReviewList() {
-      const records = JSON.parse(localStorage.getItem('studyRecords') || '{}');
+      const records = JSON.parse(localStorage.getItem('knownWords') || '{}');
       const now = new Date();
       const reviewWords = [];
 
       for (const word in records) {
-        const studiedDate = new Date(records[word]);
-        const daysPassed = (now - studiedDate) / (1000 * 60 * 60 * 24);
+        const entry = records[word];
+        const lastSeen = new Date(entry.lastSeen);
+        const daysPassed = (now - lastSeen) / (1000 * 60 * 60 * 24);
 
-        if (daysPassed >= 1 && daysPassed < 2 ||
-            daysPassed >= 3 && daysPassed < 4 ||
-            daysPassed >= 7 && daysPassed < 8) {
+        if (entry.level === 'review' &&
+            (Math.abs(daysPassed - 1) < 0.5 ||
+             Math.abs(daysPassed - 3) < 0.5 ||
+             Math.abs(daysPassed - 7) < 0.5)) {
           reviewWords.push(word);
         }
       }
@@ -196,6 +205,16 @@
         li.textContent = word;
         ul.appendChild(li);
       });
+    }
+
+    function prioritizeNewWords(dataArray) {
+      const records = JSON.parse(localStorage.getItem('knownWords') || '{}');
+      const sorted = [...dataArray].sort((a, b) => {
+        const aSeen = records[a.word]?.lastSeen || '';
+        const bSeen = records[b.word]?.lastSeen || '';
+        return bSeen.localeCompare(aSeen); // newer first
+      });
+      return sorted;
     }
 
     fetchData();
