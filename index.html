@@ -149,7 +149,103 @@
   <div id="stats-section" style="display:none;"></div>
 
   <script>
-    // スクリプト内容はそのまま（省略）
+    let data = [];
+    let currentIndex = 0;
+
+    async function fetchData() {
+      try {
+        const res = await fetch("https://script.google.com/macros/s/AKfycbwAGFLB2p5sSnJKyIwcKaF-sdt0DnygT0-12UxIwGQ-uGXMjeQdWpCqnh7KrUV3TM7Nfg/exec");
+        data = await res.json();
+        showCard();
+      } catch (error) {
+        document.getElementById("cardFront").textContent = "通信エラー";
+        console.error("Fetch failed:", error);
+      }
+    }
+
+    function showCard() {
+      const item = data[currentIndex];
+      document.getElementById("cardFront").textContent = item.word;
+      document.getElementById("cardBack").innerHTML =
+        `<strong>意味:</strong> ${item.meaning_jp}<br>
+         <strong>類義語:</strong> ${item.synonym}<br>
+         <strong>例文:</strong> ${item.example}`;
+    }
+
+    function nextCard() {
+      const card = document.querySelector(".card");
+      card.classList.remove("flip");
+      currentIndex = (currentIndex + 1) % data.length;
+      setTimeout(showCard, 300);
+    }
+
+    function flipCard() {
+      document.querySelector(".card").classList.toggle("flip");
+    }
+
+    function speakWord() {
+      const utter = new SpeechSynthesisUtterance(data[currentIndex].word);
+      utter.lang = "en-US";
+      speechSynthesis.speak(utter);
+    }
+
+    function markAsKnown() {
+      incrementTodayStats();
+    }
+
+    function markAsUnknown() {
+      // 追加予定の処理
+    }
+
+    function incrementTodayStats() {
+      const key = new Date().toISOString().split("T")[0];
+      const count = parseInt(localStorage.getItem(key) || "0", 10);
+      localStorage.setItem(key, count + 1);
+      document.getElementById("todayStats").textContent = count + 1;
+    }
+
+    function showReviewList() {
+      const records = JSON.parse(localStorage.getItem('studyRecords') || '{}');
+      const now = new Date();
+      const reviewWords = [];
+
+      for (const word in records) {
+        const studiedDate = new Date(records[word]);
+        const daysPassed = (now - studiedDate) / (1000 * 60 * 60 * 24);
+        if (daysPassed >= 1 && daysPassed < 2 || daysPassed >= 3 && daysPassed < 4 || daysPassed >= 7 && daysPassed < 8) {
+          reviewWords.push(word);
+        }
+      }
+
+      const ul = document.getElementById("reviewList");
+      ul.innerHTML = "";
+      reviewWords.forEach(word => {
+        const li = document.createElement("li");
+        li.textContent = word;
+        ul.appendChild(li);
+      });
+    }
+
+    function submitNewWord() {
+      const input = document.getElementById("newWordInput");
+      const word = input.value.trim();
+      if (!word) return;
+      fetch("https://script.google.com/macros/s/YOUR_POST_ENDPOINT_HERE/exec", {
+        method: "POST",
+        body: JSON.stringify({ word }),
+        headers: { "Content-Type": "application/json" }
+      })
+        .then(res => res.text())
+        .then(msg => {
+          document.getElementById("addStatus").textContent = msg;
+          input.value = "";
+        })
+        .catch(err => {
+          document.getElementById("addStatus").textContent = "通信エラーが発生しました";
+        });
+    }
+
+    fetchData();
   </script>
 </body>
 </html>
