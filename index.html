@@ -80,7 +80,7 @@
     button:active {
       transform: scale(0.98);
     }
-    #review-section, #add-section {
+    #review-section, #add-section, #stats-section {
       margin-top: 30px;
       width: 100%;
       max-width: 320px;
@@ -140,11 +140,18 @@
     <p id="addStatus"></p>
   </div>
 
+  <div id="stats-section">
+    <h3>今日覚えた単語数</h3>
+    <p id="todayStats">0単語</p>
+  </div>
+
   <script>
     let data = [];
     let currentIndex = 0;
     let flipped = false;
     const maxCorrect = 2;
+    let todayCorrect = 0;
+    const todayDateKey = new Date().toISOString().split('T')[0];
 
     async function fetchData() {
       const res = await fetch("https://script.google.com/macros/s/AKfycbwAGFLB2p5sSnJKyIwcKaF-sdt0DnygT0-12UxIwGQ-uGXMjeQdWpCqnh7KrUV3TM7Nfg/exec");
@@ -161,6 +168,7 @@
         document.getElementById("cardBack").innerHTML = "素晴らしい仕事です。";
         return;
       }
+      document.querySelector(".card").classList.remove("flip");
       const item = data[currentIndex];
       document.getElementById("cardFront").textContent = item.word;
       document.getElementById("cardBack").innerHTML =
@@ -168,11 +176,12 @@
          <strong>類義語:</strong> ${item.synonym}<br>
          <strong>例文:</strong> ${item.example}`;
       flipped = false;
-      document.querySelector(".card").classList.remove("flip");
     }
 
     function nextCard() {
       if (data.length === 0) return;
+      flipped = false;
+      document.querySelector(".card").classList.remove("flip");
       currentIndex = (currentIndex + 1) % data.length;
       showCard();
     }
@@ -203,7 +212,7 @@
       } else {
         nextCard();
       }
-
+      updateStats();
       showCard();
     }
 
@@ -223,6 +232,9 @@
       const now = new Date();
       const reviewWords = [];
 
+      const ul = document.getElementById("reviewList");
+      ul.innerHTML = "";
+
       for (const word in records) {
         const entry = records[word];
         const lastSeen = new Date(entry.lastSeen);
@@ -236,11 +248,16 @@
         }
       }
 
-      const ul = document.getElementById("reviewList");
-      ul.innerHTML = "";
       reviewWords.forEach(word => {
         const li = document.createElement("li");
         li.textContent = word;
+        li.style.cursor = "pointer";
+        li.onclick = () => {
+          const item = data.find(d => d.word === word);
+          if (item) {
+            alert(`意味: ${item.meaning_jp}\n類義語: ${item.synonym}\n例文: ${item.example}`);
+          }
+        };
         ul.appendChild(li);
       });
     }
@@ -276,11 +293,19 @@
       }
     }
 
+    function updateStats() {
+      let stats = JSON.parse(localStorage.getItem('dailyStats') || '{}');
+      stats[todayDateKey] = (stats[todayDateKey] || 0) + 1;
+      localStorage.setItem('dailyStats', JSON.stringify(stats));
+      document.getElementById('todayStats').textContent = `${stats[todayDateKey]}単語`;
+    }
+
     function shuffleArray(array) {
       return array.sort(() => Math.random() - 0.5);
     }
 
     fetchData();
+    updateStats();
   </script>
 </body>
 </html>
