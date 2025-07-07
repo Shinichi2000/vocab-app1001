@@ -154,6 +154,7 @@
     let data = [];
     let currentIndex = 0;
     let flipped = false;
+    let chart; // グローバルでチャートインスタンスを保持
 
     async function fetchData() {
       try {
@@ -236,7 +237,12 @@
         unknownData.push(stats.unknown || 0);
       }
 
-      new Chart(document.getElementById("statsChart"), {
+      if (chart) {
+        chart.destroy();
+      }
+
+      const ctx = document.getElementById("statsChart").getContext("2d");
+      chart = new Chart(ctx, {
         type: "bar",
         data: {
           labels: labels,
