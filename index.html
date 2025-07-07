@@ -154,7 +154,7 @@
     let data = [];
     let currentIndex = 0;
     let flipped = false;
-    let chart; // グローバルでチャートインスタンスを保持
+    let chart;
 
     async function fetchData() {
       try {
@@ -211,9 +211,9 @@
 
     function incrementTodayStats() {
       const key = new Date().toISOString().split("T")[0];
-      const count = parseInt(localStorage.getItem(key + "_known") || "0", 10);
-      localStorage.setItem(key + "_known", count + 1);
-      document.getElementById("todayStats").textContent = count + 1;
+      const count = parseInt(localStorage.getItem(key + "_known") || "0", 10) + 1;
+      localStorage.setItem(key + "_known", count);
+      document.getElementById("todayStats").textContent = count;
     }
 
     function incrementStat(type) {
@@ -237,23 +237,29 @@
         unknownData.push(stats.unknown || 0);
       }
 
-      if (chart) {
-        chart.destroy();
-      }
-
+      if (chart) chart.destroy();
       const ctx = document.getElementById("statsChart").getContext("2d");
       chart = new Chart(ctx, {
         type: "bar",
         data: {
           labels: labels,
           datasets: [
-            { label: "Seen", data: seenData, backgroundColor: "#ccc" },
-            { label: "Known", data: knownData, backgroundColor: "#2ecc71" },
-            { label: "Unknown", data: unknownData, backgroundColor: "#e74c3c" }
+            { label: "Seen Words", data: seenData, backgroundColor: "#ccc" },
+            { label: "Known Words", data: knownData, backgroundColor: "#2ecc71" },
+            { label: "Unknown Words", data: unknownData, backgroundColor: "#e74c3c" }
           ]
         },
         options: {
           responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: "Word Count"
+              }
+            }
+          },
           plugins: {
             legend: { position: 'bottom' },
             title: { display: true, text: '7-Day Learning Summary' }
