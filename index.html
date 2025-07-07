@@ -85,7 +85,7 @@
     button:active {
       transform: scale(0.98);
     }
-    #review-section, #add-section, #stats-section {
+    #review-section, #stats-section {
       margin-top: 30px;
       width: 100%;
       max-width: 320px;
@@ -139,13 +139,6 @@
     <h3>復習モード</h3>
     <button onclick="showReviewList()">今日復習すべき単語</button>
     <ul id="reviewList"></ul>
-  </div>
-
-  <div id="add-section">
-    <h3>新しい単語を追加</h3>
-    <input type="text" id="newWordInput" placeholder="新しい単語を入力">
-    <button onclick="submitNewWord()">追加</button>
-    <p id="addStatus"></p>
   </div>
 
   <canvas id="statsChart" width="320" height="200"></canvas>
@@ -288,26 +281,6 @@
         li.textContent = word;
         ul.appendChild(li);
       });
-    }
-
-    function submitNewWord() {
-      const input = document.getElementById("newWordInput");
-      const word = input.value.trim();
-      if (!word) return;
-      fetch("https://script.google.com/macros/s/YOUR_POST_ENDPOINT_HERE/exec", {
-        method: "POST",
-        body: JSON.stringify({ word }),
-        headers: { "Content-Type": "application/json" }
-      })
-        .then(res => res.text())
-        .then(msg => {
-          document.getElementById("addStatus").textContent = msg;
-          input.value = "";
-          incrementStat("added");
-        })
-        .catch(err => {
-          document.getElementById("addStatus").textContent = "通信エラーが発生しました";
-        });
     }
 
     function shuffleArray(array) {
