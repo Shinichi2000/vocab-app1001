@@ -156,12 +156,21 @@
     async function fetchData() {
       try {
         const res = await fetch("https://script.google.com/macros/s/AKfycbwAGFLB2p5sSnJKyIwcKaF-sdt0DnygT0-12UxIwGQ-uGXMjeQdWpCqnh7KrUV3TM7Nfg/exec");
-        data = await res.json();
+        const rawData = await res.json();
+        data = shuffleArray(rawData);
         showCard();
       } catch (error) {
         document.getElementById("cardFront").textContent = "通信エラー";
         console.error("Fetch failed:", error);
       }
+    }
+
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
     }
 
     function showCard() {
@@ -197,7 +206,6 @@
     }
 
     function markAsUnknown() {
-      // 将来的な処理をここに追加可能
       nextCard();
     }
 
