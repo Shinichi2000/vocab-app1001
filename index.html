@@ -27,7 +27,7 @@
       width: 90%;
       max-width: 320px;
       height: 200px;
-      perspective: 1000px;
+      perspective:  1000px;
       margin-bottom: 20px;
     }
     .card-inner {
@@ -151,6 +151,7 @@
   <script>
     let data = [];
     let currentIndex = 0;
+    let flipped = false;
 
     async function fetchData() {
       try {
@@ -170,16 +171,17 @@
         `<strong>意味:</strong> ${item.meaning_jp}<br>
          <strong>類義語:</strong> ${item.synonym}<br>
          <strong>例文:</strong> ${item.example}`;
+      flipped = false;
+      document.querySelector(".card").classList.remove("flip");
     }
 
     function nextCard() {
-      const card = document.querySelector(".card");
-      card.classList.remove("flip");
       currentIndex = (currentIndex + 1) % data.length;
-      setTimeout(showCard, 300);
+      showCard();
     }
 
     function flipCard() {
+      flipped = !flipped;
       document.querySelector(".card").classList.toggle("flip");
     }
 
