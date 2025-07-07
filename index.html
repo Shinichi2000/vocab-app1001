@@ -118,6 +118,7 @@
       }
     }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <h2>英単語フラッシュカード</h2>
@@ -132,6 +133,7 @@
   <button onclick="markAsUnknown()">❌ 忘れた</button>
   <button onclick="nextCard()">次へ</button>
   <button onclick="speakWord()">🔊 発音</button>
+  <button onclick="drawStatsChart()">📊 統計</button>
 
   <div id="review-section">
     <h3>復習モード</h3>
@@ -146,7 +148,7 @@
     <p id="addStatus"></p>
   </div>
 
-  <div id="stats-section" style="display:none;"></div>
+  <canvas id="statsChart" width="320" height="200"></canvas>
 
   <script>
     let data = [];
@@ -156,21 +158,13 @@
     async function fetchData() {
       try {
         const res = await fetch("https://script.google.com/macros/s/AKfycbwAGFLB2p5sSnJKyIwcKaF-sdt0DnygT0-12UxIwGQ-uGXMjeQdWpCqnh7KrUV3TM7Nfg/exec");
-        const rawData = await res.json();
-        data = shuffleArray(rawData);
+        data = await res.json();
+        data = shuffleArray(data);
         showCard();
       } catch (error) {
         document.getElementById("cardFront").textContent = "通信エラー";
         console.error("Fetch failed:", error);
       }
-    }
-
-    function shuffleArray(array) {
-      for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-      }
-      return array;
     }
 
     function showCard() {
@@ -182,9 +176,12 @@
          <strong>例文:</strong> ${item.example}`;
       flipped = false;
       document.querySelector(".card").classList.remove("flip");
+      incrementStat("seen");
     }
 
     function nextCard() {
+      document.querySelector(".card").classList.remove("flip");
+      flipped = false;
       currentIndex = (currentIndex + 1) % data.length;
       showCard();
     }
@@ -202,18 +199,61 @@
 
     function markAsKnown() {
       incrementTodayStats();
+      incrementStat("known");
       nextCard();
     }
 
     function markAsUnknown() {
+      incrementStat("unknown");
       nextCard();
     }
 
     function incrementTodayStats() {
       const key = new Date().toISOString().split("T")[0];
-      const count = parseInt(localStorage.getItem(key) || "0", 10);
-      localStorage.setItem(key, count + 1);
+      const count = parseInt(localStorage.getItem(key + "_known") || "0", 10);
+      localStorage.setItem(key + "_known", count + 1);
       document.getElementById("todayStats").textContent = count + 1;
+    }
+
+    function incrementStat(type) {
+      const key = new Date().toISOString().split("T")[0];
+      const stats = JSON.parse(localStorage.getItem("stats_" + key) || '{}');
+      stats[type] = (stats[type] || 0) + 1;
+      localStorage.setItem("stats_" + key, JSON.stringify(stats));
+    }
+
+    function drawStatsChart() {
+      const labels = [];
+      const knownData = [], unknownData = [], seenData = [];
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const key = date.toISOString().split("T")[0];
+        const stats = JSON.parse(localStorage.getItem("stats_" + key) || '{}');
+        labels.push(key.slice(5));
+        seenData.push(stats.seen || 0);
+        knownData.push(stats.known || 0);
+        unknownData.push(stats.unknown || 0);
+      }
+
+      new Chart(document.getElementById("statsChart"), {
+        type: "bar",
+        data: {
+          labels: labels,
+          datasets: [
+            { label: "Seen", data: seenData, backgroundColor: "#ccc" },
+            { label: "Known", data: knownData, backgroundColor: "#2ecc71" },
+            { label: "Unknown", data: unknownData, backgroundColor: "#e74c3c" }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'bottom' },
+            title: { display: true, text: '7-Day Learning Summary' }
+          }
+        }
+      });
     }
 
     function showReviewList() {
@@ -251,10 +291,15 @@
         .then(msg => {
           document.getElementById("addStatus").textContent = msg;
           input.value = "";
+          incrementStat("added");
         })
         .catch(err => {
           document.getElementById("addStatus").textContent = "通信エラーが発生しました";
         });
+    }
+
+    function shuffleArray(array) {
+      return array.sort(() => Math.random() - 0.5);
     }
 
     fetchData();
